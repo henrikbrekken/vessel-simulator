@@ -10,14 +10,14 @@ from functions.forceSurgeDamping import forceSurgeDamping
 from functions.crossFlowDrag import crossFlowDrag
 from functions.Rzyx import Rzyx
 from functions.Tzyx import Tzyx
+from functions.rk4 import rk4
 from scipy.io import loadmat
+from vessel.vessel import Vessel
 
-
-class FarSpica:
-    def __init__(self):
-        self.x = np.zeros(12)
-        self.nu = self.x[0:6]
-        self.eta = self.x[6:12]
+class FarSpica(Vessel):
+    def __init__(self, eta0):
+        self.nu = np.zeros(6)
+        self.eta = eta0
 
         # Ship model parameters
         self.L = 81
@@ -82,6 +82,7 @@ class FarSpica:
         self.M = self.MRB + self.MA
         self.Minv = np.linalg.inv(self.M)
         self.Mdiag_3dof = np.diag([self.M[0,0], self.M[1,1], self.M[5,5]])
+        self.M_3DOF = self.M[np.ix_([0,1,5], [0,1,5])]
 
         # Hydrostatics
         self.LCF = -0.5
@@ -110,6 +111,7 @@ class FarSpica:
             self.MA,
             self.G
         )
+        self.D_3DOF = self.D[np.ix_([0,1,5], [0,1,5])]
 
         # Wind parameters
         scale = 18 * 81 / (self.L * self.B)
@@ -196,3 +198,10 @@ class FarSpica:
         xdot = np.concatenate((self.nu_dot, self.eta_dot))
 
         return xdot
+    
+    def integrate_dynamics(self, dt, tau, Vc, betaVc):
+
+        x = np.concatenate([self.nu, self.eta])
+        x = rk4(self.dynamics, dt, x, tau, Vc, betaVc)
+        self.nu = x[0:6]
+        self.eta = x[6:12]
