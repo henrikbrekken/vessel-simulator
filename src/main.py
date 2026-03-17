@@ -2,11 +2,14 @@ import numpy as np
 import matplotlib
 matplotlib.use("QtAgg")
 import matplotlib.pyplot as plt
-from vessel import FarSpica
+from vessel.far_spicka import FarSpica
+from vessel.polar_transformation import polarTransformation
 from functions.rk4 import rk4
 
 
-vessel = FarSpica()
+vessel = FarSpica(np.array([100,100,0,0,0,0]))
+vessel_polar_transformed = polarTransformation(vessel)
+vessel_polar_transformed.update_states()
 
 
 time = 100      # In secons
@@ -21,18 +24,21 @@ x = np.zeros(12)  # Initial state vector
 # Store data for plotting
 eta_data = np.zeros((n_steps, 6)) # Rows and columns
 nu_data = np.zeros((n_steps, 6))
+rho_data = np.zeros(n_steps)
+gamma_data = np.zeros(n_steps)
 
 for i in range(n_steps):
     # Compute forces and moments
 
     tau = np.array([1000e3, 0, 0, 0, 0, 0])  # Surge force
 
-    vessel.x = rk4(vessel.dynamics, dt, vessel.x, tau, Vc, betaVc)
-    vessel.nu = vessel.x[0:6]
-    vessel.eta = vessel.x[6:12]
+    vessel.integrate_dynamics(dt, tau, Vc, betaVc)
+    vessel_polar_transformed.update_states()
 
     nu_data[i, :] = vessel.nu
     eta_data[i, :] = vessel.eta
+    rho_data[i] = vessel_polar_transformed.rho
+    gamma_data[i] = vessel_polar_transformed.gamma
 
 # Plotting
 plt.figure(figsize=(12, 8))
@@ -66,3 +72,4 @@ plt.ylabel('Yaw rate (rad/s)')
 plt.legend()
 plt.tight_layout()
 plt.show()
+
