@@ -22,6 +22,8 @@ class polarTransformation():
         self.gamma = np.atan2(dy,dx)
         self.psi = self.vessel.eta[5]
 
+        self.eta = np.array([self.rho, self.gamma, self.psi])
+
     def _update_T(self):
         a = self.psi - self.gamma
         self.T = np.array([[np.cos(a),               -np.sin(a),             0],
