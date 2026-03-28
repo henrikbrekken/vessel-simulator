@@ -19,6 +19,8 @@ class FarSpica(Vessel):
     def __init__(self, eta0):
         self.nu = np.zeros(6)
         self.eta = eta0
+        self.nu_3DOF = self.nu[[0,1,5]]
+        self.eta_3DOF = self.eta[[0,1,5]]
 
         # Ship model parameters
         self.L = 81
@@ -182,3 +184,5 @@ class FarSpica(Vessel):
         x = rk4(self.dynamics, dt, x, tau, Vc, betaVc)
         self.nu = x[0:6]
         self.eta = x[6:12]
+        self.nu_3DOF = self.nu[[0, 1, 5]]
+        self.eta_3DOF = self.eta[[0, 1, 5]]
