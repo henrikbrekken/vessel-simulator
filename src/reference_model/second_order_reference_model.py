@@ -4,7 +4,7 @@ from functions.ssa import ssa
 
 
 class SecondOrderVelocityAndAccelerationSaturationReferenceModel:
-    def __init__(self, x_init, h, wn_f, zeta_f, delta_f, v_max, a_max):
+    def __init__(self, x_init:float, h, wn_f:float, zeta_f:float, delta_f:float, v_max:float, a_max:float):
         self._x = x_init
         self._h = h
         self._wn_f = wn_f
@@ -14,9 +14,16 @@ class SecondOrderVelocityAndAccelerationSaturationReferenceModel:
         self.a_max = a_max
         self._v = 0
         self._a = 0
+        self._is_angle = False
 
-    def x_d(self, x_r, angle_error:bool):
-        if angle_error:
+    @classmethod
+    def angular(cls, *args, **kwargs):
+        c = cls(*args, **kwargs)
+        c._is_angle = True
+        return c
+
+    def x_d(self, x_r):
+        if self._is_angle:
             self.error = ssa(x_r - self._x)
         else:
             self.error = x_r - self._x
@@ -37,3 +44,4 @@ class SecondOrderVelocityAndAccelerationSaturationReferenceModel:
         self._x = self._x + self._h * x_dot
 
         return self._x
+
