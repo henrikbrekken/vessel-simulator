@@ -6,6 +6,7 @@ import numpy.typing as npt
 class Vessel(ABC):
     eta_3DOF: npt.NDArray
     nu_3DOF: npt.NDArray
+    Rz: npt.NDArray
     M_3DOF: npt.NDArray
     D_3DOF: npt.NDArray
 
