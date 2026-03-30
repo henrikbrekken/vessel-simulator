@@ -7,6 +7,7 @@ from functions.crossFlowDrag import crossFlowDrag
 from functions.Dmtrx import Dmtrx
 from functions.forceSurgeDamping import forceSurgeDamping
 from functions.Gmtrx import Gmtrx
+from functions.Hmtrx import Hmtrx
 from functions.m2c import m2c
 from functions.rbody import rbody
 from functions.rk4 import rk4
@@ -19,9 +20,12 @@ class FarSpica(Vessel):
     def __init__(self, eta0):
         self.nu = np.zeros(6)
         self.eta = eta0
-        self.nu_3DOF = self.nu[[0,1,5]]
-        self.eta_3DOF = self.eta[[0,1,5]]
-
+        self.nu_3DOF = self.nu[[0, 1, 5]]
+        self.eta_3DOF = self.eta[[0, 1, 5]]
+        psi = self.eta_3DOF[2]
+        self.Rz = np.array(
+            [[np.cos(psi), -np.sin(psi), 0], [np.sin(psi), np.cos(psi), 0], [0, 0, 1]]
+        )
         # Ship model parameters
         self.L = 81
         self.B = 18
@@ -32,7 +36,7 @@ class FarSpica(Vessel):
         self.nabla = self.Cb * self.L * self.B * self.T
         self.m = self.rho * self.nabla
 
-        self.r_bg = np.array([-5.3, 0, -1.0])
+        self.r_bg = np.array([-30, 0, -1.0])  # Place body frame at stern
 
         self.thrust_max = 1000e3
         self.U_max = 7.7
@@ -62,8 +66,13 @@ class FarSpica(Vessel):
         self.R66 = 0.25 * self.L
 
         # Rigid body mass matrix
-        self.MRB, _ = rbody(
-            self.m, self.R44, self.R55, self.R66, np.zeros(3), self.r_bg
+        self.H = Hmtrx(self.r_bg)
+        self.MRB, _ = (
+            self.H.T
+            @ rbody(
+                self.m, self.R44, self.R55, self.R66, np.zeros(3), np.array([0, 0, 0])
+            )
+            @ self.H
         )
 
         # Added mass
@@ -75,6 +84,7 @@ class FarSpica(Vessel):
         self.MA[2, 2] = 0.8e7
         self.MA[3, 3] = 10.2e7
         self.MA[4, 4] = 4.2e9
+        self.MA = self.H.T @ self.MA @ self.H
 
         # Total mass matrix
         self.M = self.MRB + self.MA
@@ -85,8 +95,10 @@ class FarSpica(Vessel):
         # Hydrostatics
         self.LCF = -0.5
 
-        self.G = Gmtrx(
-            self.nabla, self.Awp, self.GM_T, self.GM_L, self.LCF, np.zeros(3)
+        self.G = (
+            self.H.T
+            @ Gmtrx(self.nabla, self.Awp, self.GM_T, self.GM_L, self.LCF, np.zeros(3))
+            @ self.H
         )
 
         # Damping parameters
@@ -97,12 +109,16 @@ class FarSpica(Vessel):
         self.zeta4 = 0.30
         self.zeta5 = 0.35
 
-        self.D = Dmtrx(
-            [self.T1, self.T2, self.T6],
-            [self.zeta4, self.zeta5],
-            self.MRB,
-            self.MA,
-            self.G,
+        self.D = (
+            self.H.T
+            @ Dmtrx(
+                [self.T1, self.T2, self.T6],
+                [self.zeta4, self.zeta5],
+                self.MRB,
+                self.MA,
+                self.G,
+            )
+            @ self.H
         )
         self.D_3DOF = self.D[np.ix_([0, 1, 5], [0, 1, 5])]
 
@@ -129,9 +145,13 @@ class FarSpica(Vessel):
         nu_r = nu - nu_c
 
         # Coriolis
-        _, self.CRB = rbody(self.m, self.R44, self.R55, self.R66, nu[3:6], self.r_bg)
+        _, self.CRB = (
+            self.H.T
+            @ rbody(self.m, self.R44, self.R55, self.R66, nu[3:6], self.r_bg)
+            @ self.H
+        )
 
-        self.CA = m2c(self.MA, nu_r)
+        self.CA = self.H.T @ m2c(self.MA, nu_r) @ self.H
 
         # Surge damping
         self.S = self.L * self.B + 2 * self.T * self.B
@@ -186,3 +206,7 @@ class FarSpica(Vessel):
         self.eta = x[6:12]
         self.nu_3DOF = self.nu[[0, 1, 5]]
         self.eta_3DOF = self.eta[[0, 1, 5]]
+        psi = self.eta_3DOF[2]
+        self.Rz = np.array(
+            [[np.cos(psi), -np.sin(psi), 0], [np.sin(psi), np.cos(psi), 0], [0, 0, 1]]
+        )
