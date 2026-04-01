@@ -65,9 +65,9 @@ tau_data = np.zeros((n_steps, 6))
 
 for i in range(n_steps):
     # Compute forces and moments
-    rho_d = rho_reference_model.x_d(110)
-    gamma_d = gamma_reference_model.x_d(np.deg2rad(20))
-    psi_d = psi_reference_model.x_d(np.deg2rad(10))
+    rho_d = rho_reference_model.x_d(130)
+    gamma_d = gamma_reference_model.x_d(np.deg2rad(30))
+    psi_d = psi_reference_model.x_d(np.deg2rad(40))
     eta_d = np.array([rho_d, gamma_d, psi_d])
 
     tau = polar_controller.compute_control(eta_d)
